@@ -1,48 +1,31 @@
 // ─── Trade Incentive: daily reward brackets ─────────────────────────────────
 
 export const tradeRewardBrackets = [
-  { minTrades: 1000, reward: 5, label: '1,000' },
-  { minTrades: 5000, reward: 50, label: '5,000' },
-  { minTrades: 15000, reward: 200, label: '15,000' },
-  { minTrades: 50000, reward: 500, label: '50,000+' },
+  { minTrades: 1000, reward: 5, label: '1K' },
+  { minTrades: 5000, reward: 50, label: '5K' },
+  { minTrades: 15000, reward: 200, label: '15K' },
+  { minTrades: 50000, reward: 500, label: '50K+' },
 ]
-
-export function getTradeReward(trades: number): number {
-  if (trades >= 50000) return 500
-  if (trades >= 15000) return 200
-  if (trades >= 5000) return 50
-  if (trades >= 1000) return 5
-  return 0
-}
 
 // ─── Market Maker: level definitions ────────────────────────────────────────
 
 export const mmLevels = [
-  { level: 1, target: 5000, reward: 50, rebate: 0, upgradeStreak: 3, retentionDays: 3, retentionWindow: 7 },
-  { level: 2, target: 10000, reward: 100, rebate: 0, upgradeStreak: 5, retentionDays: 3, retentionWindow: 7 },
-  { level: 3, target: 15000, reward: 200, rebate: 0, upgradeStreak: 7, retentionDays: 4, retentionWindow: 7 },
-  { level: 4, target: 25000, reward: 300, rebate: 1, upgradeStreak: 10, retentionDays: 4, retentionWindow: 7 },
-  { level: 5, target: 50000, reward: 500, rebate: 2, upgradeStreak: 15, retentionDays: 5, retentionWindow: 7 },
+  { level: 1, target: 5000, reward: 50, rebate: 0 },
+  { level: 2, target: 10000, reward: 100, rebate: 0 },
+  { level: 3, target: 15000, reward: 200, rebate: 0 },
+  { level: 4, target: 25000, reward: 300, rebate: 1 },
+  { level: 5, target: 50000, reward: 500, rebate: 2 },
 ]
-
-export function getMMReward(liquidityTrades: number): number {
-  if (liquidityTrades >= 50000) return 500
-  if (liquidityTrades >= 25000) return 300
-  if (liquidityTrades >= 15000) return 200
-  if (liquidityTrades >= 10000) return 100
-  if (liquidityTrades >= 5000) return 50
-  return 0
-}
 
 // ─── MM enrollment eligibility ──────────────────────────────────────────────
 
 export const mmEligibility = {
   minDailyTrades: 1000,
   minDaysRequired: 3,
-  altTotalTrades: 10000,
+  altTotalTrades: 10000, // lifetime, not time-bound
 }
 
-// ─── New User: 7-day trade data ─────────────────────────────────────────────
+// ─── New User data ──────────────────────────────────────────────────────────
 
 export type DayTrade = {
   date: string
@@ -61,7 +44,9 @@ export const newUserTradeData: DayTrade[] = [
   { date: 'Feb 25', trades: 640, reward: 0, inProgress: true },
 ]
 
-// ─── Market Maker User: 7-day trade data ────────────────────────────────────
+export const newUserLifetime = { trades: 4330, rewards: 5 }
+
+// ─── Market Maker User: trade data ──────────────────────────────────────────
 
 export const mmUserTradeData: DayTrade[] = [
   { date: 'Feb 19', trades: 12400, reward: 50 },
@@ -72,6 +57,8 @@ export const mmUserTradeData: DayTrade[] = [
   { date: 'Feb 24', trades: 22100, reward: 200 },
   { date: 'Feb 25', trades: 14200, reward: 0, inProgress: true },
 ]
+
+export const mmUserLifetime = { trades: 342800, rewards: 8450 }
 
 // ─── Market Maker User: enrolled data ───────────────────────────────────────
 
@@ -84,10 +71,8 @@ export type DayLiquidity = {
 
 export const mmUserData = {
   currentLevelIndex: 2, // Level 3
-  currentStreak: 5,
-  weeklyTargetHits: 3,
   todayLiquidityTrades: 12400,
-  totalMMRewards: 750,
+  lifetimeMMRewards: 4200,
   last7Days: [
     { date: 'Feb 19', liquidityTrades: 8500, reward: 50 },
     { date: 'Feb 20', liquidityTrades: 16200, reward: 200 },

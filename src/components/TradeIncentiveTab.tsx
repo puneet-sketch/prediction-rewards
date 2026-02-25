@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import {
   DollarSign,
-  TrendingUp,
   Shield,
   ChevronDown,
   ChevronUp,
@@ -11,11 +10,23 @@ import {
   Info,
 } from 'lucide-react'
 import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+  ReferenceLine,
+} from 'recharts'
+import {
   tradeRewardBrackets,
   mmLevels,
   mmEligibility,
   newUserTradeData,
   mmUserTradeData,
+  newUserLifetime,
+  mmUserLifetime,
   type DayTrade,
 } from '../data/mockData'
 
@@ -27,8 +38,10 @@ interface Props {
 
 export default function TradeIncentiveTab({ isMarketMaker, mmEnrolled, onEnrollMM }: Props) {
   const [mmInfoExpanded, setMmInfoExpanded] = useState(false)
+  const [showLifetime, setShowLifetime] = useState(true)
 
   const tradeData: DayTrade[] = isMarketMaker ? mmUserTradeData : newUserTradeData
+  const lifetime = isMarketMaker ? mmUserLifetime : newUserLifetime
   const totalTrades7d = tradeData.reduce((s, d) => s + d.trades, 0)
   const totalRewards7d = tradeData.filter((d) => !d.inProgress).reduce((s, d) => s + d.reward, 0)
 
@@ -38,65 +51,139 @@ export default function TradeIncentiveTab({ isMarketMaker, mmEnrolled, onEnrollM
   ).length
   const isEligible =
     daysAboveThreshold >= mmEligibility.minDaysRequired ||
-    totalTrades7d >= mmEligibility.altTotalTrades
+    lifetime.trades >= mmEligibility.altTotalTrades
+
+  // Chart data (descending order)
+  const chartData = [...tradeData].reverse().map((d) => ({
+    date: d.date,
+    trades: d.trades,
+    inProgress: d.inProgress,
+  }))
+
+  // Table data (descending order)
+  const tableData = [...tradeData].reverse()
 
   return (
     <div className="space-y-6">
-      {/* Summary */}
+      {/* Summary with Lifetime / 7d toggle */}
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-          <div className="text-xs text-zinc-500 mb-1">Trades (7d)</div>
+          <div className="flex items-center justify-between mb-1">
+            <div className="text-xs text-zinc-500">Total Trades</div>
+            <div className="flex items-center bg-zinc-800 rounded-md p-0.5">
+              <button
+                onClick={() => setShowLifetime(true)}
+                className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                  showLifetime ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'
+                }`}
+              >
+                Lifetime
+              </button>
+              <button
+                onClick={() => setShowLifetime(false)}
+                className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                  !showLifetime ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'
+                }`}
+              >
+                7d
+              </button>
+            </div>
+          </div>
           <div className="text-2xl font-semibold text-white font-mono">
-            {totalTrades7d.toLocaleString()}
+            {(showLifetime ? lifetime.trades : totalTrades7d).toLocaleString()}
           </div>
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-          <div className="text-xs text-zinc-500 mb-1">Rewards earned (7d)</div>
+          <div className="text-xs text-zinc-500 mb-1">
+            Rewards earned {showLifetime ? '(lifetime)' : '(7d)'}
+          </div>
           <div className="text-2xl font-semibold text-emerald-400 font-mono">
-            ${totalRewards7d.toLocaleString()}
+            ${(showLifetime ? lifetime.rewards : totalRewards7d).toLocaleString()}
           </div>
         </div>
       </div>
 
-      {/* Reward Brackets */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
-        <div className="px-4 py-3 border-b border-zinc-800">
-          <h3 className="text-sm font-medium text-white">Daily Reward Brackets</h3>
-          <p className="text-xs text-zinc-500 mt-0.5">Hit a bracket each day to earn the reward.</p>
-        </div>
-        <div className="divide-y divide-zinc-800/60">
+      {/* Daily Reward Brackets — horizontal */}
+      <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+        <h3 className="text-sm font-medium text-white mb-1">Daily Reward Brackets</h3>
+        <p className="text-xs text-zinc-500 mb-3">Hit a bracket each day to earn the reward.</p>
+        <div className="grid grid-cols-4 gap-2">
           {tradeRewardBrackets.map((b, i) => {
             const today = tradeData[tradeData.length - 1]
             const reached = today.trades >= b.minTrades
             return (
               <div
                 key={i}
-                className={`flex items-center justify-between px-4 py-3 ${reached ? 'bg-emerald-500/5' : ''}`}
+                className={`rounded-lg border p-3 text-center ${
+                  reached
+                    ? 'bg-emerald-500/5 border-emerald-500/30'
+                    : 'bg-zinc-800/30 border-zinc-800'
+                }`}
               >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-2 h-2 rounded-full ${reached ? 'bg-emerald-500' : 'bg-zinc-700'}`}
-                  />
-                  <span className="text-sm text-zinc-300">
-                    {b.label} trades
-                  </span>
-                </div>
-                <span
-                  className={`text-sm font-medium font-mono ${reached ? 'text-emerald-400' : 'text-zinc-500'}`}
-                >
+                <div className={`text-lg font-semibold font-mono ${reached ? 'text-emerald-400' : 'text-zinc-500'}`}>
                   ${b.reward}
-                </span>
+                </div>
+                <div className={`text-[11px] mt-1 ${reached ? 'text-emerald-400/70' : 'text-zinc-600'}`}>
+                  {b.label} trades
+                </div>
               </div>
             )
           })}
         </div>
       </div>
 
-      {/* 7-Day Activity */}
+      {/* 7-Day Chart */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
         <div className="px-4 py-3 border-b border-zinc-800">
           <h3 className="text-sm font-medium text-white">Last 7 Days</h3>
         </div>
+        <div className="px-4 pt-4 pb-2">
+          <ResponsiveContainer width="100%" height={160}>
+            <BarChart data={chartData} barCategoryGap="20%">
+              <XAxis
+                dataKey="date"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: '#71717a', fontSize: 11 }}
+              />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: '#71717a', fontSize: 11 }}
+                tickFormatter={(v: number) => (v >= 1000 ? `${v / 1000}K` : String(v))}
+                width={36}
+              />
+              <Tooltip
+                contentStyle={{
+                  background: '#18181b',
+                  border: '1px solid #27272a',
+                  borderRadius: 8,
+                  fontSize: 12,
+                }}
+                labelStyle={{ color: '#a1a1aa' }}
+                itemStyle={{ color: '#34d399' }}
+                formatter={(value: number) => [value.toLocaleString(), 'Trades']}
+              />
+              <ReferenceLine
+                y={1000}
+                stroke="#3f3f46"
+                strokeDasharray="3 3"
+                label={{ value: '1K', fill: '#52525b', fontSize: 10, position: 'right' }}
+              />
+              <Bar dataKey="trades" radius={[4, 4, 0, 0]}>
+                {chartData.map((entry, idx) => (
+                  <Cell
+                    key={idx}
+                    fill={entry.inProgress ? '#6366f1' : entry.trades >= 1000 ? '#34d399' : '#3f3f46'}
+                    fillOpacity={entry.inProgress ? 0.6 : 0.8}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -108,7 +195,7 @@ export default function TradeIncentiveTab({ isMarketMaker, mmEnrolled, onEnrollM
               </tr>
             </thead>
             <tbody>
-              {tradeData.map((day, i) => (
+              {tableData.map((day, i) => (
                 <tr key={i} className="border-b border-zinc-800/40 last:border-0">
                   <td className="px-4 py-2.5 text-zinc-300">{day.date}</td>
                   <td className="px-4 py-2.5 text-right font-mono text-zinc-200">
@@ -210,27 +297,27 @@ export default function TradeIncentiveTab({ isMarketMaker, mmEnrolled, onEnrollM
               <div>
                 <div className="flex items-center justify-between text-xs mb-1">
                   <span className="text-zinc-400">
-                    {mmEligibility.altTotalTrades.toLocaleString()} total trades (7d)
+                    {mmEligibility.altTotalTrades.toLocaleString()} total trades (lifetime)
                   </span>
                   <span
                     className={
-                      totalTrades7d >= mmEligibility.altTotalTrades
+                      lifetime.trades >= mmEligibility.altTotalTrades
                         ? 'text-emerald-400'
                         : 'text-zinc-500'
                     }
                   >
-                    {totalTrades7d.toLocaleString()}/{mmEligibility.altTotalTrades.toLocaleString()}
+                    {lifetime.trades.toLocaleString()}/{mmEligibility.altTotalTrades.toLocaleString()}
                   </span>
                 </div>
                 <div className="w-full bg-zinc-800 rounded-full h-1.5">
                   <div
                     className={`rounded-full h-1.5 transition-all ${
-                      totalTrades7d >= mmEligibility.altTotalTrades
+                      lifetime.trades >= mmEligibility.altTotalTrades
                         ? 'bg-emerald-500'
                         : 'bg-indigo-500'
                     }`}
                     style={{
-                      width: `${Math.min(100, (totalTrades7d / mmEligibility.altTotalTrades) * 100)}%`,
+                      width: `${Math.min(100, (lifetime.trades / mmEligibility.altTotalTrades) * 100)}%`,
                     }}
                   />
                 </div>
@@ -253,92 +340,38 @@ export default function TradeIncentiveTab({ isMarketMaker, mmEnrolled, onEnrollM
 
           {mmInfoExpanded && (
             <div className="px-4 pb-4 space-y-4">
-              {/* Level Table */}
+              {/* Level cards — horizontal */}
               <div>
                 <div className="text-xs text-zinc-500 mb-2">Daily liquidity rewards</div>
-                <div className="border border-zinc-800 rounded-md overflow-hidden">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="text-zinc-500 border-b border-zinc-800 bg-zinc-800/30">
-                        <th className="px-3 py-2 text-left font-medium">Level</th>
-                        <th className="px-3 py-2 text-right font-medium">Maker Trades</th>
-                        <th className="px-3 py-2 text-right font-medium">Reward</th>
-                        <th className="px-3 py-2 text-right font-medium">Rebate</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {mmLevels.map((l) => (
-                        <tr key={l.level} className="border-b border-zinc-800/40 last:border-0">
-                          <td className="px-3 py-2 text-zinc-300">Level {l.level}</td>
-                          <td className="px-3 py-2 text-right text-zinc-400 font-mono">
-                            {l.target.toLocaleString()}
-                          </td>
-                          <td className="px-3 py-2 text-right text-emerald-400 font-mono">
-                            ${l.reward}
-                          </td>
-                          <td className="px-3 py-2 text-right">
-                            {l.rebate > 0 ? (
-                              <span className="text-indigo-400">{l.rebate}%</span>
-                            ) : (
-                              <span className="text-zinc-600">&mdash;</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Upgrade / Downgrade */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="border border-zinc-800 rounded-md p-3">
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
-                    <span className="text-xs font-medium text-white">Upgrade</span>
-                  </div>
-                  <p className="text-[11px] text-zinc-400 leading-relaxed">
-                    Hit the next level&apos;s target for consecutive days to upgrade.
-                  </p>
-                  <div className="mt-2 space-y-1">
-                    {mmLevels.slice(0, -1).map((l, i) => (
-                      <div key={i} className="flex justify-between text-[11px]">
-                        <span className="text-zinc-500">
-                          L{l.level} → L{l.level + 1}
-                        </span>
-                        <span className="text-zinc-400">
-                          {mmLevels[i + 1].upgradeStreak} consecutive days
-                        </span>
+                <div className="grid grid-cols-5 gap-2">
+                  {mmLevels.map((l) => (
+                    <div
+                      key={l.level}
+                      className="bg-zinc-800/30 border border-zinc-800 rounded-lg p-2.5 text-center"
+                    >
+                      <div className="text-[10px] text-zinc-500 mb-1">L{l.level}</div>
+                      <div className="text-sm font-semibold text-emerald-400 font-mono">
+                        ${l.reward}
                       </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="border border-zinc-800 rounded-md p-3">
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <Info className="w-3.5 h-3.5 text-amber-400" />
-                    <span className="text-xs font-medium text-white">Downgrade</span>
-                  </div>
-                  <p className="text-[11px] text-zinc-400 leading-relaxed">
-                    Failing weekly retention drops you one level immediately. No grace period.
-                  </p>
-                  <div className="mt-2 space-y-1">
-                    {mmLevels.map((l) => (
-                      <div key={l.level} className="flex justify-between text-[11px]">
-                        <span className="text-zinc-500">Level {l.level}</span>
-                        <span className="text-zinc-400">
-                          ≥ {l.retentionDays}/{l.retentionWindow} days or drop
-                        </span>
+                      <div className="text-[10px] text-zinc-600 mt-1 font-mono">
+                        {(l.target / 1000).toFixed(0)}K
                       </div>
-                    ))}
-                  </div>
+                      {l.rebate > 0 && (
+                        <div className="text-[10px] text-indigo-400 mt-0.5">
+                          +{l.rebate}% rebate
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
 
               <div className="flex items-start gap-1.5 text-[11px] text-zinc-500">
                 <DollarSign className="w-3.5 h-3.5 flex-shrink-0 mt-px" />
                 <span>
-                  Commission rebates of 1% (Level 4) and 2% (Level 5) on winnings commission,
-                  credited end-of-day. Same-price churn trades (±2¢ delta minimum) are excluded.
+                  We charge 10% commission on winnings. With commission rebate, {' '}
+                  1% (Level 4) or 2% (Level 5) is deposited back to your wallet at end-of-day.
+                  Same-price churn trades (±2¢ delta minimum) are excluded.
                 </span>
               </div>
             </div>
