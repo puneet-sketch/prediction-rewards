@@ -2,13 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 * {
   scrollbar-width: thin;
-  scrollbar-color: #334155 transparent;
+  scrollbar-color: #27272a transparent;
 }
 
 *::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
 }
 
 *::-webkit-scrollbar-track {
@@ -16,6 +21,6 @@
 }
 
 *::-webkit-scrollbar-thumb {
-  background-color: #334155;
+  background-color: #27272a;
   border-radius: 3px;
 }
