@@ -15,8 +15,8 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  Cell,
   ReferenceLine,
+  Legend,
 } from 'recharts'
 import { mmRewardBrackets, mmUserData } from '../data/mockData'
 
@@ -26,36 +26,41 @@ export default function MarketMakerTab() {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('1d')
 
   const today = mmUserData.last7Days[mmUserData.last7Days.length - 1]
-  const todayMakerTrades = today.makerTrades
 
-  const totalTrades7d = mmUserData.last7Days.reduce((s, d) => s + d.makerTrades, 0)
+  const entryTrades7d = mmUserData.last7Days.reduce((s, d) => s + d.entryMakerTrades, 0)
+  const exitTrades7d = mmUserData.last7Days.reduce((s, d) => s + d.exitMakerTrades, 0)
   const totalRewards7d = mmUserData.last7Days
     .filter((d) => !d.inProgress)
     .reduce((s, d) => s + d.reward, 0)
 
   // Time-filtered values
-  const makerTradesDisplay =
-    timeFilter === '1d' ? todayMakerTrades :
-    timeFilter === '7d' ? totalTrades7d : mmUserData.lifetimeMakerTrades
+  const entryDisplay =
+    timeFilter === '1d' ? today.entryMakerTrades :
+    timeFilter === '7d' ? entryTrades7d : mmUserData.lifetimeEntryMakerTrades
+  const exitDisplay =
+    timeFilter === '1d' ? today.exitMakerTrades :
+    timeFilter === '7d' ? exitTrades7d : mmUserData.lifetimeExitMakerTrades
   const rewardsDisplay =
     timeFilter === '1d' ? (today.inProgress ? 0 : today.reward) :
     timeFilter === '7d' ? totalRewards7d : mmUserData.lifetimeMMRewards
 
-  // Bracket logic — only the highest reached bracket counts
+  // Bracket logic — only entry maker trades count, highest bracket only
+  const todayEntryMakerTrades = today.entryMakerTrades
   const currentBracketIndex = mmRewardBrackets.reduce(
-    (highest, b, i) => (todayMakerTrades >= b.minTrades ? i : highest), -1
+    (highest, b, i) => (todayEntryMakerTrades >= b.minTrades ? i : highest), -1
   )
   const currentReward = currentBracketIndex >= 0 ? mmRewardBrackets[currentBracketIndex].reward : 0
   const currentRebate = currentBracketIndex >= 0 ? mmRewardBrackets[currentBracketIndex].rebate : 0
   const nextBracket = currentBracketIndex < mmRewardBrackets.length - 1
     ? mmRewardBrackets[currentBracketIndex + 1]
     : null
-  const tradesToNext = nextBracket ? nextBracket.minTrades - todayMakerTrades : 0
+  const tradesToNext = nextBracket ? nextBracket.minTrades - todayEntryMakerTrades : 0
 
-  // Chart data (descending order)
+  // Chart data (descending order) — stacked entry + exit
   const chartData = [...mmUserData.last7Days].reverse().map((d) => ({
     date: d.date,
-    makerTrades: d.makerTrades,
+    entryMakerTrades: d.entryMakerTrades,
+    exitMakerTrades: d.exitMakerTrades,
     inProgress: d.inProgress,
   }))
 
@@ -98,23 +103,32 @@ export default function MarketMakerTab() {
               </span>
             </div>
             <p className="text-xs text-zinc-500 mt-0.5">
-              Earn daily rewards based on your maker trade volume.
+              Earn daily rewards based on your entry maker trade volume.
               {currentRebate > 0 && <> Today&apos;s bracket includes {currentRebate}% commission rebate.</>}
             </p>
           </div>
         </div>
       </div>
 
-      {/* Stats */}
+      {/* Stats — entry / exit / rewards (mirrors Trade Incentive layout) */}
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
           <div className="flex items-center justify-between mb-1">
-            <div className="text-xs text-zinc-500">Maker Trades</div>
+            <div className="text-xs text-zinc-500">Entry Maker Trades</div>
             <TimeToggle />
           </div>
           <div className="text-2xl font-semibold text-white font-mono">
-            {makerTradesDisplay.toLocaleString()}
+            {entryDisplay.toLocaleString()}
           </div>
+          <div className="text-[10px] text-emerald-400/70 mt-1">Eligible for rewards</div>
+        </div>
+
+        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+          <div className="text-xs text-zinc-500 mb-1">Exit Maker Trades</div>
+          <div className="text-2xl font-semibold text-zinc-400 font-mono">
+            {exitDisplay.toLocaleString()}
+          </div>
+          <div className="text-[10px] text-zinc-600 mt-1">Not counted for rewards</div>
         </div>
 
         <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
@@ -122,18 +136,10 @@ export default function MarketMakerTab() {
           <div className="text-2xl font-semibold text-emerald-400 font-mono">
             ${rewardsDisplay.toLocaleString()}
           </div>
-          <div className="text-[10px] text-zinc-500 mt-1">Credited EOD to wallet</div>
-        </div>
-
-        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-          <div className="text-xs text-zinc-500 mb-1">Commission Rebate</div>
-          <div className="text-2xl font-semibold text-white font-mono">
-            {currentRebate > 0 ? `${currentRebate}%` : '\u2014'}
-          </div>
           <div className="text-[10px] text-zinc-500 mt-1">
             {currentRebate > 0
-              ? 'On winnings commission (EOD)'
-              : 'Hit 25K+ maker trades for 1% rebate'}
+              ? `+ ${currentRebate}% rebate (EOD)`
+              : 'Credited EOD to wallet'}
           </div>
         </div>
       </div>
@@ -142,7 +148,7 @@ export default function MarketMakerTab() {
       <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
         <div className="flex items-center justify-between mb-1">
           <h3 className="text-sm font-medium text-white">Daily Maker Trade Rewards</h3>
-          <span className="text-[10px] text-zinc-600">Highest bracket only</span>
+          <span className="text-[10px] text-zinc-600">Based on entry maker trades only</span>
         </div>
         <p className="text-xs text-zinc-500 mb-3">
           You earn the reward of the highest bracket you reach each day. Only one reward per day.
@@ -187,7 +193,7 @@ export default function MarketMakerTab() {
                   isPassed ? 'text-zinc-700' :
                   isNext ? 'text-indigo-400/70' : 'text-zinc-600'
                 }`}>
-                  {b.label} maker trades
+                  {b.label} entry trades
                 </div>
                 {b.rebate > 0 && (
                   <div className={`text-[10px] mt-0.5 ${
@@ -214,7 +220,7 @@ export default function MarketMakerTab() {
                 }
               </span>
               <span className="text-indigo-400">
-                {tradesToNext.toLocaleString()} more maker trades to reach ${nextBracket.reward}
+                {tradesToNext.toLocaleString()} more entry maker trades to reach ${nextBracket.reward}
                 {currentReward > 0 && <> (+${nextBracket.reward - currentReward})</>}
                 {nextBracket.rebate > 0 && <> with +{nextBracket.rebate}% rebate</>}
               </span>
@@ -232,13 +238,13 @@ export default function MarketMakerTab() {
         )}
       </div>
 
-      {/* 7-Day Chart + Table */}
+      {/* 7-Day Chart — stacked entry + exit */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
         <div className="px-4 py-3 border-b border-zinc-800">
           <h3 className="text-sm font-medium text-white">Maker Trade Activity (7d)</h3>
         </div>
         <div className="px-4 pt-4 pb-2">
-          <ResponsiveContainer width="100%" height={160}>
+          <ResponsiveContainer width="100%" height={180}>
             <BarChart data={chartData} barCategoryGap="20%">
               <XAxis
                 dataKey="date"
@@ -261,8 +267,16 @@ export default function MarketMakerTab() {
                   fontSize: 12,
                 }}
                 labelStyle={{ color: '#a1a1aa' }}
-                itemStyle={{ color: '#34d399' }}
-                formatter={(value: number) => [value.toLocaleString(), 'Maker Trades']}
+                formatter={(value: number, name: string) => [
+                  value.toLocaleString(),
+                  name === 'entryMakerTrades' ? 'Entry Maker Trades' : 'Exit Maker Trades',
+                ]}
+              />
+              <Legend
+                formatter={(value: string) =>
+                  value === 'entryMakerTrades' ? 'Entry' : 'Exit'
+                }
+                wrapperStyle={{ fontSize: 11, color: '#71717a' }}
               />
               <ReferenceLine
                 y={refLineTarget}
@@ -275,43 +289,35 @@ export default function MarketMakerTab() {
                   position: 'right',
                 }}
               />
-              <Bar dataKey="makerTrades" radius={[4, 4, 0, 0]}>
-                {chartData.map((entry, idx) => (
-                  <Cell
-                    key={idx}
-                    fill={
-                      entry.inProgress
-                        ? '#6366f1'
-                        : entry.makerTrades >= mmRewardBrackets[0].minTrades
-                          ? '#34d399'
-                          : '#3f3f46'
-                    }
-                    fillOpacity={entry.inProgress ? 0.6 : 0.8}
-                  />
-                ))}
-              </Bar>
+              <Bar dataKey="entryMakerTrades" stackId="trades" fill="#34d399" fillOpacity={0.8} radius={[0, 0, 0, 0]} />
+              <Bar dataKey="exitMakerTrades" stackId="trades" fill="#3f3f46" fillOpacity={0.5} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
+        {/* Table with Entry / Exit columns */}
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-zinc-500 text-xs border-b border-zinc-800">
                 <th className="px-4 py-2.5 text-left font-medium">Date</th>
-                <th className="px-4 py-2.5 text-right font-medium">Maker Trades</th>
+                <th className="px-4 py-2.5 text-right font-medium">Entry</th>
+                <th className="px-4 py-2.5 text-right font-medium">Exit</th>
                 <th className="px-4 py-2.5 text-right font-medium">Reward</th>
                 <th className="px-4 py-2.5 text-right font-medium">Status</th>
               </tr>
             </thead>
             <tbody>
               {tableData.map((day, i) => {
-                const hit = day.makerTrades >= mmRewardBrackets[0].minTrades
+                const hit = day.entryMakerTrades >= mmRewardBrackets[0].minTrades
                 return (
                   <tr key={i} className="border-b border-zinc-800/40 last:border-0">
                     <td className="px-4 py-2.5 text-zinc-300">{day.date}</td>
                     <td className="px-4 py-2.5 text-right font-mono text-zinc-200">
-                      {day.makerTrades.toLocaleString()}
+                      {day.entryMakerTrades.toLocaleString()}
+                    </td>
+                    <td className="px-4 py-2.5 text-right font-mono text-zinc-500">
+                      {day.exitMakerTrades.toLocaleString()}
                     </td>
                     <td className="px-4 py-2.5 text-right font-mono">
                       {day.reward > 0 ? (
@@ -356,7 +362,7 @@ export default function MarketMakerTab() {
         <div className="border-t border-zinc-800 pt-3 flex items-start gap-1.5 text-[11px] text-zinc-500">
           <DollarSign className="w-3.5 h-3.5 flex-shrink-0 mt-px" />
           <span>
-            We charge 10% commission on winnings. At higher brackets (25K+ and 50K+ maker trades),
+            We charge 10% commission on winnings. At higher brackets (25K+ and 50K+ entry maker trades),
             1% or 2% of the commission is rebated back to your wallet at end-of-day.
             Same-price churn trades (±2¢ delta minimum) are excluded.
           </span>

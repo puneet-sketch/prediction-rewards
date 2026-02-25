@@ -65,23 +65,24 @@ export const mmUserLifetime = { entryTrades: 214200, exitTrades: 128600, rewards
 
 export type DayMakerTrade = {
   date: string
-  makerTrades: number
+  entryMakerTrades: number
+  exitMakerTrades: number
   reward: number
   inProgress?: boolean
 }
 
 export const mmUserData = {
-  todayMakerTrades: 12400,
-  lifetimeMakerTrades: 186500,
+  lifetimeEntryMakerTrades: 186500,
+  lifetimeExitMakerTrades: 98200,
   lifetimeMMRewards: 4200,
   last7Days: [
-    { date: 'Feb 19', makerTrades: 8500, reward: 50 },
-    { date: 'Feb 20', makerTrades: 16200, reward: 200 },
-    { date: 'Feb 21', makerTrades: 15800, reward: 200 },
-    { date: 'Feb 22', makerTrades: 11200, reward: 100 },
-    { date: 'Feb 23', makerTrades: 3200, reward: 0 },
-    { date: 'Feb 24', makerTrades: 18500, reward: 200 },
-    { date: 'Feb 25', makerTrades: 12400, reward: 0, inProgress: true },
+    { date: 'Feb 19', entryMakerTrades: 8500, exitMakerTrades: 4200, reward: 50 },
+    { date: 'Feb 20', entryMakerTrades: 16200, exitMakerTrades: 7800, reward: 200 },
+    { date: 'Feb 21', entryMakerTrades: 15800, exitMakerTrades: 8100, reward: 200 },
+    { date: 'Feb 22', entryMakerTrades: 11200, exitMakerTrades: 5600, reward: 100 },
+    { date: 'Feb 23', entryMakerTrades: 3200, exitMakerTrades: 1800, reward: 0 },
+    { date: 'Feb 24', entryMakerTrades: 18500, exitMakerTrades: 9400, reward: 200 },
+    { date: 'Feb 25', entryMakerTrades: 12400, exitMakerTrades: 6300, reward: 0, inProgress: true },
   ] as DayMakerTrade[],
 }
 
