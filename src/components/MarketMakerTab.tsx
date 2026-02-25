@@ -107,7 +107,7 @@ export default function MarketMakerTab() {
             </div>
           </div>
           <div className="text-xl font-semibold text-white font-mono">
-            {(showLifetime ? mmUserLifetime.trades : totalTrades7d).toLocaleString()}
+            {(showLifetime ? (mmUserLifetime.entryTrades + mmUserLifetime.exitTrades) : totalTrades7d).toLocaleString()}
           </div>
         </div>
 

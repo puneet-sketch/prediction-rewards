@@ -18,6 +18,7 @@ import {
   ResponsiveContainer,
   Cell,
   ReferenceLine,
+  Legend,
 } from 'recharts'
 import {
   tradeRewardBrackets,
@@ -42,21 +43,27 @@ export default function TradeIncentiveTab({ isMarketMaker, mmEnrolled, onEnrollM
 
   const tradeData: DayTrade[] = isMarketMaker ? mmUserTradeData : newUserTradeData
   const lifetime = isMarketMaker ? mmUserLifetime : newUserLifetime
-  const totalTrades7d = tradeData.reduce((s, d) => s + d.trades, 0)
+
+  const entryTrades7d = tradeData.reduce((s, d) => s + d.entryTrades, 0)
+  const exitTrades7d = tradeData.reduce((s, d) => s + d.exitTrades, 0)
+  const totalTrades7d = entryTrades7d + exitTrades7d
   const totalRewards7d = tradeData.filter((d) => !d.inProgress).reduce((s, d) => s + d.reward, 0)
 
-  // MM eligibility check
+  const lifetimeTotal = lifetime.entryTrades + lifetime.exitTrades
+
+  // MM eligibility check (uses total trades — entry + exit)
   const daysAboveThreshold = tradeData.filter(
-    (d) => !d.inProgress && d.trades >= mmEligibility.minDailyTrades
+    (d) => !d.inProgress && (d.entryTrades + d.exitTrades) >= mmEligibility.minDailyTrades
   ).length
   const isEligible =
     daysAboveThreshold >= mmEligibility.minDaysRequired ||
-    lifetime.trades >= mmEligibility.altTotalTrades
+    lifetimeTotal >= mmEligibility.altTotalTrades
 
-  // Chart data (descending order)
+  // Chart data (descending order) — stacked entry + exit
   const chartData = [...tradeData].reverse().map((d) => ({
     date: d.date,
-    trades: d.trades,
+    entryTrades: d.entryTrades,
+    exitTrades: d.exitTrades,
     inProgress: d.inProgress,
   }))
 
@@ -66,10 +73,10 @@ export default function TradeIncentiveTab({ isMarketMaker, mmEnrolled, onEnrollM
   return (
     <div className="space-y-6">
       {/* Summary with Lifetime / 7d toggle */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
           <div className="flex items-center justify-between mb-1">
-            <div className="text-xs text-zinc-500">Total Trades</div>
+            <div className="text-xs text-zinc-500">Entry Trades</div>
             <div className="flex items-center bg-zinc-800 rounded-md p-0.5">
               <button
                 onClick={() => setShowLifetime(true)}
@@ -90,12 +97,22 @@ export default function TradeIncentiveTab({ isMarketMaker, mmEnrolled, onEnrollM
             </div>
           </div>
           <div className="text-2xl font-semibold text-white font-mono">
-            {(showLifetime ? lifetime.trades : totalTrades7d).toLocaleString()}
+            {(showLifetime ? lifetime.entryTrades : entryTrades7d).toLocaleString()}
           </div>
+          <div className="text-[10px] text-emerald-400/70 mt-1">Eligible for rewards</div>
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
           <div className="text-xs text-zinc-500 mb-1">
-            Rewards earned {showLifetime ? '(lifetime)' : '(7d)'}
+            Exit Trades {showLifetime ? '(lifetime)' : '(7d)'}
+          </div>
+          <div className="text-2xl font-semibold text-zinc-400 font-mono">
+            {(showLifetime ? lifetime.exitTrades : exitTrades7d).toLocaleString()}
+          </div>
+          <div className="text-[10px] text-zinc-600 mt-1">Not counted for rewards</div>
+        </div>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+          <div className="text-xs text-zinc-500 mb-1">
+            Rewards {showLifetime ? '(lifetime)' : '(7d)'}
           </div>
           <div className="text-2xl font-semibold text-emerald-400 font-mono">
             ${(showLifetime ? lifetime.rewards : totalRewards7d).toLocaleString()}
@@ -103,14 +120,17 @@ export default function TradeIncentiveTab({ isMarketMaker, mmEnrolled, onEnrollM
         </div>
       </div>
 
-      {/* Daily Reward Brackets — horizontal */}
+      {/* Daily Reward Brackets — horizontal, based on entry trades only */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-        <h3 className="text-sm font-medium text-white mb-1">Daily Reward Brackets</h3>
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="text-sm font-medium text-white">Daily Reward Brackets</h3>
+          <span className="text-[10px] text-zinc-600">Based on entry trades only</span>
+        </div>
         <p className="text-xs text-zinc-500 mb-3">Hit a bracket each day to earn the reward.</p>
         <div className="grid grid-cols-4 gap-2">
           {tradeRewardBrackets.map((b, i) => {
             const today = tradeData[tradeData.length - 1]
-            const reached = today.trades >= b.minTrades
+            const reached = today.entryTrades >= b.minTrades
             return (
               <div
                 key={i}
@@ -124,7 +144,7 @@ export default function TradeIncentiveTab({ isMarketMaker, mmEnrolled, onEnrollM
                   ${b.reward}
                 </div>
                 <div className={`text-[11px] mt-1 ${reached ? 'text-emerald-400/70' : 'text-zinc-600'}`}>
-                  {b.label} trades
+                  {b.label} entry trades
                 </div>
               </div>
             )
@@ -132,13 +152,13 @@ export default function TradeIncentiveTab({ isMarketMaker, mmEnrolled, onEnrollM
         </div>
       </div>
 
-      {/* 7-Day Chart */}
+      {/* 7-Day Chart — stacked entry + exit */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
         <div className="px-4 py-3 border-b border-zinc-800">
           <h3 className="text-sm font-medium text-white">Last 7 Days</h3>
         </div>
         <div className="px-4 pt-4 pb-2">
-          <ResponsiveContainer width="100%" height={160}>
+          <ResponsiveContainer width="100%" height={180}>
             <BarChart data={chartData} barCategoryGap="20%">
               <XAxis
                 dataKey="date"
@@ -161,8 +181,16 @@ export default function TradeIncentiveTab({ isMarketMaker, mmEnrolled, onEnrollM
                   fontSize: 12,
                 }}
                 labelStyle={{ color: '#a1a1aa' }}
-                itemStyle={{ color: '#34d399' }}
-                formatter={(value: number) => [value.toLocaleString(), 'Trades']}
+                formatter={(value: number, name: string) => [
+                  value.toLocaleString(),
+                  name === 'entryTrades' ? 'Entry Trades' : 'Exit Trades',
+                ]}
+              />
+              <Legend
+                formatter={(value: string) =>
+                  value === 'entryTrades' ? 'Entry' : 'Exit'
+                }
+                wrapperStyle={{ fontSize: 11, color: '#71717a' }}
               />
               <ReferenceLine
                 y={1000}
@@ -170,15 +198,8 @@ export default function TradeIncentiveTab({ isMarketMaker, mmEnrolled, onEnrollM
                 strokeDasharray="3 3"
                 label={{ value: '1K', fill: '#52525b', fontSize: 10, position: 'right' }}
               />
-              <Bar dataKey="trades" radius={[4, 4, 0, 0]}>
-                {chartData.map((entry, idx) => (
-                  <Cell
-                    key={idx}
-                    fill={entry.inProgress ? '#6366f1' : entry.trades >= 1000 ? '#34d399' : '#3f3f46'}
-                    fillOpacity={entry.inProgress ? 0.6 : 0.8}
-                  />
-                ))}
-              </Bar>
+              <Bar dataKey="entryTrades" stackId="trades" fill="#34d399" fillOpacity={0.8} radius={[0, 0, 0, 0]} />
+              <Bar dataKey="exitTrades" stackId="trades" fill="#3f3f46" fillOpacity={0.5} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -189,7 +210,8 @@ export default function TradeIncentiveTab({ isMarketMaker, mmEnrolled, onEnrollM
             <thead>
               <tr className="text-zinc-500 text-xs border-b border-zinc-800">
                 <th className="px-4 py-2.5 text-left font-medium">Date</th>
-                <th className="px-4 py-2.5 text-right font-medium">Trades</th>
+                <th className="px-4 py-2.5 text-right font-medium">Entry</th>
+                <th className="px-4 py-2.5 text-right font-medium">Exit</th>
                 <th className="px-4 py-2.5 text-right font-medium">Reward</th>
                 <th className="px-4 py-2.5 text-right font-medium">Status</th>
               </tr>
@@ -199,7 +221,10 @@ export default function TradeIncentiveTab({ isMarketMaker, mmEnrolled, onEnrollM
                 <tr key={i} className="border-b border-zinc-800/40 last:border-0">
                   <td className="px-4 py-2.5 text-zinc-300">{day.date}</td>
                   <td className="px-4 py-2.5 text-right font-mono text-zinc-200">
-                    {day.trades.toLocaleString()}
+                    {day.entryTrades.toLocaleString()}
+                  </td>
+                  <td className="px-4 py-2.5 text-right font-mono text-zinc-500">
+                    {day.exitTrades.toLocaleString()}
                   </td>
                   <td className="px-4 py-2.5 text-right font-mono">
                     {day.reward > 0 ? (
@@ -226,6 +251,14 @@ export default function TradeIncentiveTab({ isMarketMaker, mmEnrolled, onEnrollM
             </tbody>
           </table>
         </div>
+      </div>
+
+      <div className="flex items-start gap-1.5 text-[11px] text-zinc-500 px-1">
+        <Info className="w-3.5 h-3.5 flex-shrink-0 mt-px" />
+        <span>
+          Only entry trades count toward daily reward brackets. Exit trades (closing positions)
+          are tracked but not eligible for trade incentive rewards.
+        </span>
       </div>
 
       {/* Market Maker Section */}
@@ -301,23 +334,23 @@ export default function TradeIncentiveTab({ isMarketMaker, mmEnrolled, onEnrollM
                   </span>
                   <span
                     className={
-                      lifetime.trades >= mmEligibility.altTotalTrades
+                      lifetimeTotal >= mmEligibility.altTotalTrades
                         ? 'text-emerald-400'
                         : 'text-zinc-500'
                     }
                   >
-                    {lifetime.trades.toLocaleString()}/{mmEligibility.altTotalTrades.toLocaleString()}
+                    {lifetimeTotal.toLocaleString()}/{mmEligibility.altTotalTrades.toLocaleString()}
                   </span>
                 </div>
                 <div className="w-full bg-zinc-800 rounded-full h-1.5">
                   <div
                     className={`rounded-full h-1.5 transition-all ${
-                      lifetime.trades >= mmEligibility.altTotalTrades
+                      lifetimeTotal >= mmEligibility.altTotalTrades
                         ? 'bg-emerald-500'
                         : 'bg-indigo-500'
                     }`}
                     style={{
-                      width: `${Math.min(100, (lifetime.trades / mmEligibility.altTotalTrades) * 100)}%`,
+                      width: `${Math.min(100, (lifetimeTotal / mmEligibility.altTotalTrades) * 100)}%`,
                     }}
                   />
                 </div>
@@ -369,7 +402,7 @@ export default function TradeIncentiveTab({ isMarketMaker, mmEnrolled, onEnrollM
               <div className="flex items-start gap-1.5 text-[11px] text-zinc-500">
                 <DollarSign className="w-3.5 h-3.5 flex-shrink-0 mt-px" />
                 <span>
-                  We charge 10% commission on winnings. With commission rebate, {' '}
+                  We charge 10% commission on winnings. With commission rebate,{' '}
                   1% (Level 4) or 2% (Level 5) is deposited back to your wallet at end-of-day.
                   Same-price churn trades (±2¢ delta minimum) are excluded.
                 </span>

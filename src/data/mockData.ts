@@ -29,36 +29,37 @@ export const mmEligibility = {
 
 export type DayTrade = {
   date: string
-  trades: number
+  entryTrades: number
+  exitTrades: number
   reward: number
   inProgress?: boolean
 }
 
 export const newUserTradeData: DayTrade[] = [
-  { date: 'Feb 19', trades: 0, reward: 0 },
-  { date: 'Feb 20', trades: 320, reward: 0 },
-  { date: 'Feb 21', trades: 890, reward: 0 },
-  { date: 'Feb 22', trades: 1250, reward: 5 },
-  { date: 'Feb 23', trades: 450, reward: 0 },
-  { date: 'Feb 24', trades: 780, reward: 0 },
-  { date: 'Feb 25', trades: 640, reward: 0, inProgress: true },
+  { date: 'Feb 19', entryTrades: 0, exitTrades: 0, reward: 0 },
+  { date: 'Feb 20', entryTrades: 195, exitTrades: 125, reward: 0 },
+  { date: 'Feb 21', entryTrades: 540, exitTrades: 350, reward: 0 },
+  { date: 'Feb 22', entryTrades: 1050, exitTrades: 200, reward: 5 },
+  { date: 'Feb 23', entryTrades: 270, exitTrades: 180, reward: 0 },
+  { date: 'Feb 24', entryTrades: 470, exitTrades: 310, reward: 0 },
+  { date: 'Feb 25', entryTrades: 390, exitTrades: 250, reward: 0, inProgress: true },
 ]
 
-export const newUserLifetime = { trades: 4330, rewards: 5 }
+export const newUserLifetime = { entryTrades: 2915, exitTrades: 1415, rewards: 5 }
 
 // ─── Market Maker User: trade data ──────────────────────────────────────────
 
 export const mmUserTradeData: DayTrade[] = [
-  { date: 'Feb 19', trades: 12400, reward: 50 },
-  { date: 'Feb 20', trades: 18200, reward: 200 },
-  { date: 'Feb 21', trades: 16800, reward: 200 },
-  { date: 'Feb 22', trades: 11500, reward: 50 },
-  { date: 'Feb 23', trades: 3200, reward: 5 },
-  { date: 'Feb 24', trades: 22100, reward: 200 },
-  { date: 'Feb 25', trades: 14200, reward: 0, inProgress: true },
+  { date: 'Feb 19', entryTrades: 7400, exitTrades: 5000, reward: 50 },
+  { date: 'Feb 20', entryTrades: 15500, exitTrades: 2700, reward: 200 },
+  { date: 'Feb 21', entryTrades: 15200, exitTrades: 1600, reward: 200 },
+  { date: 'Feb 22', entryTrades: 7100, exitTrades: 4400, reward: 50 },
+  { date: 'Feb 23', entryTrades: 1900, exitTrades: 1300, reward: 5 },
+  { date: 'Feb 24', entryTrades: 16400, exitTrades: 5700, reward: 200 },
+  { date: 'Feb 25', entryTrades: 8600, exitTrades: 5600, reward: 0, inProgress: true },
 ]
 
-export const mmUserLifetime = { trades: 342800, rewards: 8450 }
+export const mmUserLifetime = { entryTrades: 214200, exitTrades: 128600, rewards: 8450 }
 
 // ─── Market Maker User: enrolled data ───────────────────────────────────────
 
