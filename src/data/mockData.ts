@@ -7,22 +7,22 @@ export const tradeRewardBrackets = [
   { minTrades: 50000, reward: 500, label: '50K+' },
 ]
 
-// ─── Market Maker: level definitions ────────────────────────────────────────
+// ─── Market Maker: daily reward brackets (no levels, bracket-based) ──────────
 
-export const mmLevels = [
-  { level: 1, target: 5000, reward: 50, rebate: 0 },
-  { level: 2, target: 10000, reward: 100, rebate: 0 },
-  { level: 3, target: 15000, reward: 200, rebate: 0 },
-  { level: 4, target: 25000, reward: 300, rebate: 1 },
-  { level: 5, target: 50000, reward: 500, rebate: 2 },
+export const mmRewardBrackets = [
+  { minTrades: 5000, reward: 50, rebate: 0, label: '5K' },
+  { minTrades: 10000, reward: 100, rebate: 0, label: '10K' },
+  { minTrades: 15000, reward: 200, rebate: 0, label: '15K' },
+  { minTrades: 25000, reward: 300, rebate: 1, label: '25K' },
+  { minTrades: 50000, reward: 500, rebate: 2, label: '50K+' },
 ]
 
-// ─── MM enrollment eligibility ──────────────────────────────────────────────
+// ─── MM enrollment eligibility (based on entry trades) ───────────────────────
 
 export const mmEligibility = {
-  minDailyTrades: 1000,
+  minDailyTrades: 1000, // entry trades per day
   minDaysRequired: 3,
-  altTotalTrades: 10000, // lifetime, not time-bound
+  altTotalTrades: 10000, // lifetime entry trades, not time-bound
 }
 
 // ─── New User data ──────────────────────────────────────────────────────────
@@ -61,28 +61,28 @@ export const mmUserTradeData: DayTrade[] = [
 
 export const mmUserLifetime = { entryTrades: 214200, exitTrades: 128600, rewards: 8450 }
 
-// ─── Market Maker User: enrolled data ───────────────────────────────────────
+// ─── Market Maker User: enrolled maker trade data ────────────────────────────
 
-export type DayLiquidity = {
+export type DayMakerTrade = {
   date: string
-  liquidityTrades: number
+  makerTrades: number
   reward: number
   inProgress?: boolean
 }
 
 export const mmUserData = {
-  currentLevelIndex: 2, // Level 3
-  todayLiquidityTrades: 12400,
+  todayMakerTrades: 12400,
+  lifetimeMakerTrades: 186500,
   lifetimeMMRewards: 4200,
   last7Days: [
-    { date: 'Feb 19', liquidityTrades: 8500, reward: 50 },
-    { date: 'Feb 20', liquidityTrades: 16200, reward: 200 },
-    { date: 'Feb 21', liquidityTrades: 15800, reward: 200 },
-    { date: 'Feb 22', liquidityTrades: 11200, reward: 100 },
-    { date: 'Feb 23', liquidityTrades: 3200, reward: 0 },
-    { date: 'Feb 24', liquidityTrades: 18500, reward: 200 },
-    { date: 'Feb 25', liquidityTrades: 12400, reward: 0, inProgress: true },
-  ] as DayLiquidity[],
+    { date: 'Feb 19', makerTrades: 8500, reward: 50 },
+    { date: 'Feb 20', makerTrades: 16200, reward: 200 },
+    { date: 'Feb 21', makerTrades: 15800, reward: 200 },
+    { date: 'Feb 22', makerTrades: 11200, reward: 100 },
+    { date: 'Feb 23', makerTrades: 3200, reward: 0 },
+    { date: 'Feb 24', makerTrades: 18500, reward: 200 },
+    { date: 'Feb 25', makerTrades: 12400, reward: 0, inProgress: true },
+  ] as DayMakerTrade[],
 }
 
 // ─── Referral (unchanged) ───────────────────────────────────────────────────
